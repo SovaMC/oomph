@@ -45,6 +45,9 @@ func (p *Player) SetServerConn(conn ServerConn) {
 	}
 
 	blockNetwork := blocknetwork.NewCodec(p.World().BlockRegistry(), blocknetwork.ModeFromHashes(conn.GameData().UseBlockNetworkIDHashes))
+	if p.conn != nil {
+		blockNetwork = blockNetwork.WithChunkProtocol(p.conn.Proto())
+	}
 	if p.serverConn == nil {
 		p.blockNetwork = blockNetwork
 		for _, item := range conn.GameData().Items {

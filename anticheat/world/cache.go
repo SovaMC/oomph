@@ -52,7 +52,7 @@ func CacheSubChunk(payload *bytes.Buffer, c *chunk.Chunk, pos protocol.ChunkPos,
 	scMu.Lock()
 	defer scMu.Unlock()
 
-	hash := xxh3.Hash128Seed(payload.Bytes(), uint64(codec.Mode()))
+	hash := xxh3.Hash128Seed(payload.Bytes(), codec.ChunkKey())
 	if sc, ok := subChunkCache[hash]; ok {
 		sc.subs.Add(1)
 		//fmt.Println("returning cached subchunk", hash)
@@ -64,7 +64,9 @@ func CacheSubChunk(payload *bytes.Buffer, c *chunk.Chunk, pos protocol.ChunkPos,
 	if err != nil {
 		return nil, err
 	}
-	if codec.Mode() == blocknetwork.Hashes {
+	if codec.MapsChunks() {
+		decodedSC.ReplaceBlockRuntimeIDs(codec.UnmapChunkRuntimeID)
+	} else if codec.Mode() == blocknetwork.Hashes {
 		decodedSC.ConvertBlockNetworkHashesToRuntimeIDs(BlockRegistry)
 	}
 
@@ -80,7 +82,7 @@ func CacheChunk(input *packet.LevelChunk, codec blocknetwork.Codec) (ChunkInfo, 
 	cMu.Lock()
 	defer cMu.Unlock()
 
-	hash := xxh3.Hash128Seed(input.RawPayload, uint64(codec.Mode()))
+	hash := xxh3.Hash128Seed(input.RawPayload, codec.ChunkKey())
 	if c, ok := chunkCache[hash]; ok {
 		c.subs.Add(1)
 		//fmt.Println("returning cached chunk", hash)
@@ -92,17 +94,31 @@ func CacheChunk(input *packet.LevelChunk, codec blocknetwork.Codec) (ChunkInfo, 
 		return ChunkInfo{}, fmt.Errorf("unknown dimension %v", input.Dimension)
 	}
 
-	decodedChunk, err := chunk.NetworkDecode(
-		BlockRegistry,
-		input.RawPayload,
-		int(input.SubChunkCount),
-		dimension.Range(),
-	)
-	if err != nil {
-		return ChunkInfo{}, err
-	}
-	if codec.Mode() == blocknetwork.Hashes {
-		decodedChunk.ConvertBlockNetworkHashesToRuntimeIDs()
+	var decodedChunk *chunk.Chunk
+	var err error
+	if codec.MapsChunks() {
+		payloadRange := dimension.Range()
+		if r, ok := codec.ChunkRange(); ok && dimension == world.Overworld {
+			payloadRange = r
+		}
+		decodedChunk, err = chunk.NetworkDecodeBlocks(BlockRegistry, input.RawPayload, int(input.SubChunkCount), payloadRange, dimension.Range())
+		if err != nil {
+			return ChunkInfo{}, err
+		}
+		decodedChunk.ReplaceBlockRuntimeIDs(codec.UnmapChunkRuntimeID)
+	} else {
+		decodedChunk, err = chunk.NetworkDecode(
+			BlockRegistry,
+			input.RawPayload,
+			int(input.SubChunkCount),
+			dimension.Range(),
+		)
+		if err != nil {
+			return ChunkInfo{}, err
+		}
+		if codec.Mode() == blocknetwork.Hashes {
+			decodedChunk.ConvertBlockNetworkHashesToRuntimeIDs()
+		}
 	}
 	decodedChunk.CompactForRuntimeCache()
 

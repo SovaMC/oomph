@@ -6,6 +6,7 @@ import "github.com/df-mc/dragonfly/server/world/chunk"
 type Codec struct {
 	registry chunk.BlockRegistry
 	mode     Mode
+	chunks   chunkFormat
 }
 
 // NewCodec returns a Codec backed by registry using mode. It panics if registry is nil.
