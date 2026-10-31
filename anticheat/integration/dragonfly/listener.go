@@ -72,6 +72,12 @@ func Listener(ctx context.Context, cfg Config) func(server.Config) (server.Liste
 // Wrap adds Oomph packet processing to a Dragonfly listener factory backed by
 // a gophertunnel RakNet or NetherNet listener.
 func Wrap(ctx context.Context, next func(server.Config) (server.Listener, error), configure func(*player.Player)) func(server.Config) (server.Listener, error) {
+	return WrapExempt(ctx, next, configure, nil)
+}
+
+// WrapExempt works like Wrap, but connections for which exempt returns true are passed to Dragonfly without Oomph
+// processing. This allows servers to keep accepting clients on protocols that Oomph does not support.
+func WrapExempt(ctx context.Context, next func(server.Config) (server.Listener, error), configure func(*player.Player), exempt func(*minecraft.Conn) bool) func(server.Config) (server.Listener, error) {
 	return func(conf server.Config) (server.Listener, error) {
 		if next == nil {
 			return nil, fmt.Errorf("dragonfly integration: wrapped listener factory is required")
@@ -87,7 +93,9 @@ func Wrap(ctx context.Context, next func(server.Config) (server.Listener, error)
 		if log == nil {
 			log = slog.Default()
 		}
-		return newListener(ctx, base, nil, log, configure), nil
+		l := newListener(ctx, base, nil, log, configure)
+		l.exempt = exempt
+		return l, nil
 	}
 }
 
@@ -115,6 +123,7 @@ type listener struct {
 	raw       *minecraft.Listener
 	log       *slog.Logger
 	configure func(*player.Player)
+	exempt    func(*minecraft.Conn) bool
 	done      chan struct{}
 	closeOnce sync.Once
 	closeErr  error
@@ -145,6 +154,9 @@ func (l *listener) Accept() (session.Conn, error) {
 		_ = accepted.Close()
 		return nil, fmt.Errorf("dragonfly integration: unexpected connection type %T", accepted)
 	}
+	if l.exempt != nil && l.exempt(conn) {
+		return conn, nil
+	}
 	p := player.New(l.log.With(
 		"name", conn.IdentityData().DisplayName,
 		"xuid", conn.IdentityData().XUID,
@@ -163,6 +175,14 @@ func (l *listener) Accept() (session.Conn, error) {
 func (l *listener) Disconnect(conn session.Conn, reason string) error {
 	c, ok := conn.(*sessionConn)
 	if !ok {
+		if raw, isRaw := conn.(*minecraft.Conn); isRaw && l.exempt != nil {
+			if l.base != nil {
+				return l.base.Disconnect(raw, reason)
+			}
+			if l.raw != nil {
+				return l.raw.Disconnect(raw, reason)
+			}
+		}
 		return fmt.Errorf("dragonfly integration: unexpected session connection type %T", conn)
 	}
 	var disconnectErr error
