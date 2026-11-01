@@ -300,15 +300,6 @@ func (p *Player) handleMovement(pk *packet.PlayerAuthInput) {
 	hasTeleport := p.movement.HasTeleport()
 	hasKnockback := p.movement.HasKnockback()
 	if hasKnockback {
-		p.Log().Info(
-			"movement knockback",
-			"knockback", p.movement.Knockback(),
-			"ticks_since_knockback", p.ticksSinceKnockback,
-			"server_pos", p.movement.Pos(),
-			"server_vel", p.movement.Vel(),
-			"server_ground", p.movement.OnGround(),
-			"latency", p.StackLatency.Milliseconds(),
-		)
 		p.ticksSinceKnockback = 0
 	} else {
 		p.ticksSinceKnockback++

@@ -654,9 +654,6 @@ func attemptJump(p *player.Player, dbg *player.Debugger) bool {
 	// still resets the delay on the client, which then reports the jump it started, so that jump is accepted.
 	if !movement.Jumping() || !movement.OnGround() || (movement.JumpDelay() > 0 && !movement.StartedJump()) {
 		dbg.Notify(player.DebugModeMovementSim, movement.Jumping(), "rejected jump from client (onGround=%v jumpDelay=%d)", movement.OnGround(), movement.JumpDelay())
-		if movement.StartedJump() {
-			p.Log().Info("movement jump rejected", "server_ground", movement.OnGround(), "jump_delay", movement.JumpDelay(), "server_pos", movement.Pos(), "server_vel", movement.Vel())
-		}
 		return false
 	}
 
