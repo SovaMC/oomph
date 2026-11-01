@@ -84,6 +84,8 @@ type MovementComponent interface {
 	Jumping() bool
 	// PressingJump returns true if the movement component is holding down the key bound to the jump action.
 	PressingJump() bool
+	// StartedJump returns true if the client reported starting a jump in the current frame.
+	StartedJump() bool
 	// JumpDelay returns the number of ticks until the movement component can make another jump.
 	JumpDelay() uint64
 	// SetJumpDelay sets the number of ticks until the movement component can make another jump.

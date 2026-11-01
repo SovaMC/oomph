@@ -324,6 +324,11 @@ func (mc *AuthoritativeMovementComponent) Jumping() bool {
 	return mc.jumping || mc.pressingJump
 }
 
+// StartedJump returns true if the client reported starting a jump in the current frame.
+func (mc *AuthoritativeMovementComponent) StartedJump() bool {
+	return mc.jumping
+}
+
 // PressingJump returns true if the movement component is holding down the key bound to the jump action.
 func (mc *AuthoritativeMovementComponent) PressingJump() bool {
 	return mc.pressingJump

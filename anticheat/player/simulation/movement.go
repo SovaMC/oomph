@@ -650,7 +650,9 @@ func attemptKnockback(movement player.MovementComponent) bool {
 
 func attemptJump(p *player.Player, dbg *player.Debugger) bool {
 	movement := p.Movement()
-	if !movement.Jumping() || !movement.OnGround() || movement.JumpDelay() > 0 {
+	// The jump delay only applies while the jump key is held. A key released and pressed again between two inputs
+	// still resets the delay on the client, which then reports the jump it started, so that jump is accepted.
+	if !movement.Jumping() || !movement.OnGround() || (movement.JumpDelay() > 0 && !movement.StartedJump()) {
 		dbg.Notify(player.DebugModeMovementSim, movement.Jumping(), "rejected jump from client (onGround=%v jumpDelay=%d)", movement.OnGround(), movement.JumpDelay())
 		return false
 	}
