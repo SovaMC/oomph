@@ -24,6 +24,19 @@ func (p *Player) ServerConn() ServerConn {
 }
 
 // SetConn sets the connection to the client.
+// FlushACKs immediately sends the pending acknowledgments to the client. It is used right after writing packets the
+// client applies as soon as it receives them, such as knockback, so that the acknowledgment arrives in the same batch.
+// Otherwise the connection may flush the packet before the next tick sends the acknowledgment, and the client applies
+// the packet a tick before Oomph does.
+func (p *Player) FlushACKs() {
+	p.procMu.Lock()
+	defer p.procMu.Unlock()
+	if p.Closed || p.MState.IsReplay || p.conn == nil {
+		return
+	}
+	p.acks.Flush()
+}
+
 func (p *Player) SetConn(conn *minecraft.Conn) {
 	p.conn = conn
 

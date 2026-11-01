@@ -100,7 +100,13 @@ func (c *sessionConn) WritePacket(pk packet.Packet) error {
 		}
 		pk = *ctx.Packet()
 	}
-	return c.Conn.WritePacket(pk)
+	if err := c.Conn.WritePacket(pk); err != nil {
+		return err
+	}
+	if motion, ok := pk.(*packet.SetActorMotion); ok && c.player != nil && motion.EntityRuntimeID == c.player.RuntimeId {
+		c.player.FlushACKs()
+	}
+	return nil
 }
 
 // ClientCacheEnabled remains disabled because Oomph does not yet track the
