@@ -419,9 +419,10 @@ func (p *Player) tryBreakBlock(interactFace cube.Face) bool {
 	}
 
 	breakPos := *breakPosPtr
-	p.blockBreakProgress += 1.0 / math32.Max(p.expectedBlockBreakTime(breakPos), 0.001)
+	step := 1.0 / math32.Max(p.expectedBlockBreakTime(breakPos), 0.001)
+	p.blockBreakProgress += step
 	p.Dbg.Notify(DebugModeBlockBreaking, true, "block break progress=%.4f", p.blockBreakProgress)
-	if p.blockBreakProgress <= 0.999 {
+	if p.blockBreakProgress+step <= 0.999 {
 		p.SendBlockUpdates([]protocol.BlockPos{breakPos})
 		p.Popup("<red>Broke block too early!</red>")
 		p.Dbg.Notify(DebugModeBlockBreaking, true, "cancelled break action (blockBreakProgress=%.4f)", p.blockBreakProgress)

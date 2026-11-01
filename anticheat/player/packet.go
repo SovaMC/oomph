@@ -118,7 +118,6 @@ func (p *Player) handleClientPacket(ctx *context.HandlePacketContext) {
 		}
 	case *packet.PlayerAuthInput:
 		if !p.movement.InputAcceptable() {
-			p.Popup("<red>input rate-limited (%d)</red>", p.SimulationFrame)
 			p.tryRunningClientCombat(pk)
 			ctx.Cancel()
 			return

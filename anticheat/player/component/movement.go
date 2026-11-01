@@ -160,6 +160,8 @@ func (mc *AuthoritativeMovementComponent) InputAcceptable() bool {
 	return true
 }
 
+const inputBurstAllowance = 4
+
 func (mc *AuthoritativeMovementComponent) Tick(elapsedTicks int64) {
 	if !mc.hasFirstInput {
 		mc.allowedInputs = 65535
@@ -170,7 +172,7 @@ func (mc *AuthoritativeMovementComponent) Tick(elapsedTicks int64) {
 	if latencyAllowance < 0 {
 		latencyAllowance = 0
 	}
-	latencyAllowance += elapsedTicks
+	latencyAllowance += elapsedTicks + inputBurstAllowance
 	defaultAllowance := mc.allowedInputs
 	if defaultAllowance < 0 {
 		defaultAllowance = 0
