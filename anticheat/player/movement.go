@@ -297,6 +297,11 @@ func (p *Player) handleMovement(pk *packet.PlayerAuthInput) {
 
 	hasTeleport := p.movement.HasTeleport()
 	hasKnockback := p.movement.HasKnockback()
+	if hasKnockback {
+		p.ticksSinceKnockback = 0
+	} else {
+		p.ticksSinceKnockback++
+	}
 
 	p.World().CleanChunks(p.WorldUpdater().ChunkRadius(), protocol.ChunkPos{
 		int32(p.movement.Pos().X()) >> 4,
@@ -313,6 +318,14 @@ func (p *Player) handleMovement(pk *packet.PlayerAuthInput) {
 	needsCorrection := posDiff.Len() > p.Opts().Movement.CorrectionThreshold
 	if needsCorrection && p.movement.PendingTeleports() == 0 && !hasTeleport &&
 		!pk.InputData.Load(packet.InputFlagJumpPressedRaw) && !hasKnockback {
+		p.Log().Info(
+			"movement correction",
+			"diff", posDiff.Len(),
+			"ticks_since_knockback", p.ticksSinceKnockback,
+			"latency", p.StackLatency.Milliseconds(),
+			"server_pos", p.movement.Pos(),
+			"client_pos", p.movement.Client().Pos(),
+		)
 		p.movement.Sync()
 	} else if !needsCorrection && !hasTeleport && !hasKnockback && p.movement.PendingCorrections() == 0 {
 		inCooldown := p.movement.InCorrectionCooldown()

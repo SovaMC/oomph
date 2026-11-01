@@ -87,6 +87,8 @@ type Player struct {
 	// SimulationFrame is the simulation frame of the client, sent in PlayerAuthInput.
 	SimulationFrame        uint64
 	ClientTick, InputCount int64
+	// ticksSinceKnockback is the amount of inputs since the last knockback was applied to the movement simulation.
+	ticksSinceKnockback int64
 	ServerTick             int64
 	Tps                    float32
 	StackLatency           time.Duration
