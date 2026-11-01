@@ -300,6 +300,15 @@ func (p *Player) handleMovement(pk *packet.PlayerAuthInput) {
 	hasTeleport := p.movement.HasTeleport()
 	hasKnockback := p.movement.HasKnockback()
 	if hasKnockback {
+		p.Log().Info(
+			"movement knockback",
+			"knockback", p.movement.Knockback(),
+			"ticks_since_knockback", p.ticksSinceKnockback,
+			"server_pos", p.movement.Pos(),
+			"server_vel", p.movement.Vel(),
+			"server_ground", p.movement.OnGround(),
+			"latency", p.StackLatency.Milliseconds(),
+		)
 		p.ticksSinceKnockback = 0
 	} else {
 		p.ticksSinceKnockback++
@@ -327,6 +336,13 @@ func (p *Player) handleMovement(pk *packet.PlayerAuthInput) {
 			"latency", p.StackLatency.Milliseconds(),
 			"server_pos", p.movement.Pos(),
 			"client_pos", p.movement.Client().Pos(),
+			"server_vel", p.movement.Vel(),
+			"client_vel", p.movement.Client().Vel(),
+			"server_ground", p.movement.OnGround(),
+			"start_jump", pk.InputData.Load(packet.InputFlagStartJumping),
+			"jumping", pk.InputData.Load(packet.InputFlagJumping),
+			"jump_pressed", pk.InputData.Load(packet.InputFlagJumpPressedRaw),
+			"jump_delay", p.movement.JumpDelay(),
 		)
 		p.movement.Sync()
 	} else if !needsCorrection && !hasTeleport && !hasKnockback && p.movement.PendingCorrections() == 0 {
