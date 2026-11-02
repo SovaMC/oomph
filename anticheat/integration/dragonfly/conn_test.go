@@ -225,6 +225,7 @@ func (c *blockingConn) Close() error {
 func (c *blockingConn) IdentityData() login.IdentityData { return login.IdentityData{} }
 func (c *blockingConn) ClientData() login.ClientData     { return login.ClientData{} }
 func (c *blockingConn) ClientCacheEnabled() bool         { return false }
+func (c *blockingConn) Proto() minecraft.Protocol { return nil }
 func (c *blockingConn) ChunkRadius() int                 { return 0 }
 func (c *blockingConn) Latency() time.Duration           { return 0 }
 func (c *blockingConn) Flush() error                     { return nil }
