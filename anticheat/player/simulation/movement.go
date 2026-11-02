@@ -465,7 +465,15 @@ func tryCollisions(p *player.Player, src world.BlockSource, dbg *player.Debugger
 			// HACK: If a step is possible here, we check which the client seems to align itself better with. The reason this is neccessary
 			// is because in some scenarios, the client seems to reject a step even though Oomph thinks it is possible. This is mainly in scenarios
 			// where the player teleports into a block.
-			stepPosDist := stepPos.Sub(movement.Client().Pos()).Len()
+			//
+			// Clients using the slide offset report their position without the height of the step, so it is left out here too.
+			stepSlideOffset := movement.SlideOffset().Mul(game.SlideOffsetMultiplier)
+			stepSlideOffset[1] += stepVel.Y()
+			expectedStepPos := stepPos
+			if useSlideOffset {
+				expectedStepPos[1] -= stepSlideOffset.Y()
+			}
+			stepPosDist := expectedStepPos.Sub(movement.Client().Pos()).Len()
 			collisionPosDist := collisionPos.Sub(movement.Client().Pos()).Len()
 
 			// We also need to ensure that the client isn't using this mechanic to create some weird movement bypass, so we will check if the
@@ -478,9 +486,7 @@ func tryCollisions(p *player.Player, src world.BlockSource, dbg *player.Debugger
 				// This sliding offset is only used in versions 1.20.60 and below. On newer versions of the game, this sliding offset is no longer used.
 				if useSlideOffset {
 					completedStep = true
-					slideOffset := movement.SlideOffset().Mul(game.SlideOffsetMultiplier)
-					slideOffset[1] += stepVel.Y()
-					movement.SetSlideOffset(slideOffset)
+					movement.SetSlideOffset(stepSlideOffset)
 				}
 				dbg.Notify(player.DebugModeMovementSim, true, "step successful")
 			} else {
@@ -507,6 +513,11 @@ func tryCollisions(p *player.Player, src world.BlockSource, dbg *player.Debugger
 			// We don't add a debug message here, as it should already be noted in the statement where stepHeight is set
 			endPos[1] -= movement.SlideOffset().Y()
 			dbg.Notify(player.DebugModeMovementSim, true, "applying slideOffset, able to subtract endPos.y this frame by %f", movement.SlideOffset().Y())
+		} else if p.UsesLegacyInput() {
+			// Clients below 1.16.210 keep easing into the step over the next frames instead of finishing it at once.
+			slideOffset := movement.SlideOffset().Mul(game.SlideOffsetMultiplier)
+			movement.SetSlideOffset(slideOffset)
+			endPos[1] -= slideOffset.Y()
 		} else {
 			// If there was no step done this tick, we can be certain that
 			dbg.Notify(player.DebugModeMovementSim, true, "using slide offset, RESETTING slide offset vector")
