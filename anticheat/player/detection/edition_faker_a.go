@@ -96,8 +96,9 @@ func (d *EditionFakerA) Detect(pk packet.Packet) {
 	deviceOS := d.mPlayer.ClientDat.DeviceOS
 	titleID := d.mPlayer.IdentityDat.TitleID
 
-	// 1.21.90+ clients often omit title ID in chain data; nothing to validate.
-	if titleID == "" && d.mPlayer.Version >= player.GameVersion1_21_90 {
+	// 1.21.90+ clients often omit title ID in chain data; nothing to validate. Clients below 1.20 are not known to
+	// always carry one either.
+	if titleID == "" && (d.mPlayer.Version >= player.GameVersion1_21_90 || d.mPlayer.Version < player.GameVersion1_20_0) {
 		return
 	}
 

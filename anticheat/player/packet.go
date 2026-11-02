@@ -30,6 +30,7 @@ var ClientDecode = []uint32{
 	packet.IDLevelSoundEvent,
 	packet.IDClientMovementPredictionSync,
 	packet.IDPlayerAction,
+	packet.IDAdventureSettings,
 	packet.IDCommandRequest,
 	packet.IDPacketViolationWarning,
 }
@@ -158,6 +159,9 @@ func (p *Player) handleClientPacket(ctx *context.HandlePacketContext) {
 		}
 	case *packet.PlayerAction:
 		p.queueLegacyAction(pk)
+		ctx.SetModified()
+	case *packet.AdventureSettings:
+		p.queueLegacyFlight(pk)
 	case *packet.NetworkStackLatency:
 		if p.ACKs().Execute(pk.Timestamp) {
 			ctx.Cancel()
@@ -180,7 +184,10 @@ func (p *Player) handleClientPacket(ctx *context.HandlePacketContext) {
 			}
 		} else if tr, ok := pk.TransactionData.(*protocol.UseItemTransactionData); ok {
 			p.inventory.SetHeldSlot(int32(tr.HotBarSlot))
-			p.queueLegacyBreak(tr)
+			if !p.handleLegacyBreak(tr) {
+				ctx.Cancel()
+				return
+			}
 			p.Clicks().HandleRight(tr)
 			if tr.ActionType == protocol.UseItemActionClickAir {
 				// If the client is gliding and uses a firework, it predicts a boost on it's own side, although the entity may not exist on the server.

@@ -12,6 +12,8 @@ import (
 
 const (
 	AckDivider = 1000
+
+	maxUnmatchedLogs = 5
 )
 
 // ACKComponent is the component of the player that is responsible for sending and handling
@@ -19,6 +21,9 @@ const (
 type ACKComponent struct {
 	legacyMode   bool
 	clientTicked bool
+
+	unmatchedLogs int
+
 	mPlayer      *player.Player
 
 	ticksSinceLastResponse int64
@@ -62,7 +67,7 @@ func (ackC *ACKComponent) Execute(ackID int64) bool {
 	// Iterate throught the pending acks and find the one with the matching timestamp.
 	var index int = -1
 	for i, b := range ackC.pending {
-		if b.timestamp == ackID || (ackC.legacyMode && (b.timestamp*AckDivider == ackID || b.timestamp*AckDivider*AckDivider == ackID)) {
+		if b.timestamp == ackID || (ackC.legacyMode && legacyACKMatches(b.timestamp, ackID)) {
 			index = i
 			break
 		}
@@ -71,6 +76,10 @@ func (ackC *ACKComponent) Execute(ackID int64) bool {
 	// If there is none found with the given ack ID.
 	if index == -1 {
 		ackC.mPlayer.Dbg.Notify(player.DebugModeACKs, true, "no ACK ID found for %d", ackID)
+		if ackC.legacyMode && ackC.unmatchedLogs < maxUnmatchedLogs && len(ackC.pending) > 0 {
+			ackC.unmatchedLogs++
+			ackC.mPlayer.Log().Warn("unmatched legacy ACK", "response", ackID, "oldest_pending", ackC.pending[0].timestamp, "pending", len(ackC.pending))
+		}
 		return false
 	}
 	//assert.IsTrue(index < len(ackC.pending) && index >= 0, "found index (%d) out of bounds of 0-%d", index, len(ackC.pending)-1)
@@ -91,6 +100,24 @@ func (ackC *ACKComponent) Execute(ackID int64) bool {
 	ackC.pending = ackC.pending[index+1:]
 	ackC.ticksSinceLastResponse = 0
 	ackC.mPlayer.Dbg.Notify(player.DebugModeACKs, true, "ACK ID %d executed", ackID)
+	return true
+}
+
+// legacyACKMatches returns true if a response is the timestamp sent, scaled by a power of ten. Clients below 1.20 do not
+// all scale timestamps the same way. The timestamps are random, so another response won't match by accident.
+func legacyACKMatches(sent, response int64) bool {
+	if sent <= 0 || response <= 0 {
+		return false
+	}
+	low, high := min(sent, response), max(sent, response)
+	if high%low != 0 {
+		return false
+	}
+	for ratio := high / low; ratio > 1; ratio /= 10 {
+		if ratio%10 != 0 {
+			return false
+		}
+	}
 	return true
 }
 

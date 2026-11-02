@@ -33,6 +33,25 @@ func TestLegacyACKResponses(t *testing.T) {
 	}
 }
 
+func TestLegacyACKMatches(t *testing.T) {
+	const sent = int64(1234567) * AckDivider
+	for response, want := range map[int64]bool{
+		sent:             true,
+		sent * 1000:      true,
+		sent * 1_000_000: true,
+		sent / 1000:      true,
+		sent + 1:         false,
+		sent * 2:         false,
+		sent * 15:        false,
+		1762070000123456: false,
+		0:                false,
+	} {
+		if got := legacyACKMatches(sent, response); got != want {
+			t.Errorf("legacyACKMatches(%d, %d) = %v, want %v", sent, response, got, want)
+		}
+	}
+}
+
 func TestSetLegacyKeepsQueuedACKs(t *testing.T) {
 	var runs int
 	ack := &ACKComponent{mPlayer: player.New(nil, player.MonitoringState{}, nil)}
