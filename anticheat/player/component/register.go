@@ -11,6 +11,7 @@ func Register(p *player.Player) {
 	p.SetClientEntityTracker(NewEntityTrackerComponent(p, true))
 	p.SetEffects(NewEffectsComponent())
 	p.SetACKs(NewACKComponent(p))
+	p.ACKs().SetLegacy(p.Version > 0 && p.Version < player.GameVersion1_20_0)
 	p.SetMovement(NewAuthoritativeMovementComponent(p))
 	p.SetWorldUpdater(NewWorldUpdaterComponent(p))
 	p.SetGamemodeHandle(NewGamemodeComponent(p))

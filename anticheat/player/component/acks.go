@@ -62,7 +62,7 @@ func (ackC *ACKComponent) Execute(ackID int64) bool {
 	// Iterate throught the pending acks and find the one with the matching timestamp.
 	var index int = -1
 	for i, b := range ackC.pending {
-		if b.timestamp == ackID {
+		if b.timestamp == ackID || (ackC.legacyMode && (b.timestamp*AckDivider == ackID || b.timestamp*AckDivider*AckDivider == ackID)) {
 			index = i
 			break
 		}
@@ -122,6 +122,11 @@ func (ackC *ACKComponent) Legacy() bool {
 // SetLegacy sets whether the acknowledgment component should use legacy mode.
 func (ackC *ACKComponent) SetLegacy(legacy bool) {
 	ackC.legacyMode = legacy
+	if ackC.currentBatch != nil {
+		acks := ackC.currentBatch.acks
+		ackC.Refresh()
+		ackC.currentBatch.acks = acks
+	}
 }
 
 // Tick ticks the acknowledgment component.

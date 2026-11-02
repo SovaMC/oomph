@@ -26,6 +26,8 @@ import (
 )
 
 const (
+	GameVersion1_16_210 = 428
+
 	GameVersion1_20_0  = 589
 	GameVersion1_20_10 = 594
 	GameVersion1_20_30 = 618
@@ -87,6 +89,7 @@ type Player struct {
 	// SimulationFrame is the simulation frame of the client, sent in PlayerAuthInput.
 	SimulationFrame        uint64
 	ClientTick, InputCount int64
+	legacyInput legacyInput
 	// ticksSinceKnockback is the amount of inputs since the last knockback was applied to the movement simulation.
 	ticksSinceKnockback int64
 	ServerTick             int64

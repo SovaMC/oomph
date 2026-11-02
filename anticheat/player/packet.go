@@ -134,6 +134,7 @@ func (p *Player) handleClientPacket(ctx *context.HandlePacketContext) {
 			p.combat.Attack(nil)
 		}
 		p.acks.Tick(true)
+		defer p.applyLegacyInput(pk)()
 
 		if pk.InputData.Load(packet.InputFlagPerformItemStackRequest) {
 			if request, ok := pk.ItemStackRequest.Value(); ok {
@@ -155,6 +156,8 @@ func (p *Player) handleClientPacket(ctx *context.HandlePacketContext) {
 		if serverVerifiedHit && missedSwing {
 			pk.InputData.Unset(packet.InputFlagMissedSwing)
 		}
+	case *packet.PlayerAction:
+		p.queueLegacyAction(pk)
 	case *packet.NetworkStackLatency:
 		if p.ACKs().Execute(pk.Timestamp) {
 			ctx.Cancel()
@@ -177,6 +180,7 @@ func (p *Player) handleClientPacket(ctx *context.HandlePacketContext) {
 			}
 		} else if tr, ok := pk.TransactionData.(*protocol.UseItemTransactionData); ok {
 			p.inventory.SetHeldSlot(int32(tr.HotBarSlot))
+			p.queueLegacyBreak(tr)
 			p.Clicks().HandleRight(tr)
 			if tr.ActionType == protocol.UseItemActionClickAir {
 				// If the client is gliding and uses a firework, it predicts a boost on it's own side, although the entity may not exist on the server.

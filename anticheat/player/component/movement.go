@@ -1038,6 +1038,27 @@ func (mc *AuthoritativeMovementComponent) Sync() {
 		}
 		mc.mPlayer.SendPacketToClient(actorData)
 
+		// Clients below 1.20 are not in the rewind movement mode and do not act on prediction corrections.
+		if mc.mPlayer.Version < player.GameVersion1_20_0 {
+			rotation := mc.Rotation()
+			mc.mPlayer.SendPacketToClient(&packet.MovePlayer{
+				EntityRuntimeID: mc.mPlayer.RuntimeId,
+				Position:        mc.Pos().Add(mgl32.Vec3{0, 1.621}),
+				Pitch:           rotation.X(),
+				Yaw:             rotation.Z(),
+				HeadYaw:         rotation.Y(),
+				Mode:            packet.MoveModeReset,
+				OnGround:        mc.OnGround(),
+				Tick:            mc.mPlayer.SimulationFrame,
+			})
+			mc.mPlayer.SendPacketToClient(&packet.SetActorMotion{
+				EntityRuntimeID: mc.mPlayer.RuntimeId,
+				Velocity:        mc.Vel(),
+			})
+			mc.mPlayer.PendingCorrectionACK = true
+			return
+		}
+
 		// Send the actual movement correction to the client.
 		mc.mPlayer.SendPacketToClient(&packet.CorrectPlayerMovePrediction{
 			PredictionType: packet.PredictionTypePlayer,
