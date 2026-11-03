@@ -663,12 +663,11 @@ func attemptJump(p *player.Player, dbg *player.Debugger) bool {
 	movement := p.Movement()
 	// Clients below 1.16.210 report every jump, in the input of the frame they jumped in. Their jump key already shows
 	// as held in the frame before that, so simulating a jump from the key alone would be one frame ahead of them.
-	if p.UsesLegacyInput() && !movement.StartedJump() {
-		return false
-	}
-	// The jump delay only applies while the jump key is held. A key released and pressed again between two inputs
-	// still resets the delay on the client, which then reports the jump it started, so that jump is accepted.
-	if !movement.Jumping() || !movement.OnGround() || (movement.JumpDelay() > 0 && !movement.StartedJump()) {
+	if p.UsesLegacyInput() {
+		if !p.LegacyJumpReady(movement.StartedJump(), movement.OnGround()) {
+			return false
+		}
+	} else if !movement.Jumping() || !movement.OnGround() || (movement.JumpDelay() > 0 && !movement.StartedJump()) {
 		dbg.Notify(player.DebugModeMovementSim, movement.Jumping(), "rejected jump from client (onGround=%v jumpDelay=%d)", movement.OnGround(), movement.JumpDelay())
 		return false
 	}

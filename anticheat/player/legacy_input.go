@@ -31,6 +31,26 @@ func (p *Player) UsesLegacyInput() bool {
 	return p.Version > 0 && p.Version < GameVersion1_16_210
 }
 
+// legacyJumpFrames is the number of inputs a reported jump waits for the simulation to reach the ground. The client may
+// land and jump just before the simulation lands, and it reports the jump only once.
+const legacyJumpFrames = 3
+
+// LegacyJumpReady returns true if a client below 1.16.210 reported a jump that can start now.
+func (p *Player) LegacyJumpReady(started, onGround bool) bool {
+	if started {
+		p.legacyJumpWindow = legacyJumpFrames
+	}
+	if p.legacyJumpWindow == 0 {
+		return false
+	}
+	if onGround {
+		p.legacyJumpWindow = 0
+		return true
+	}
+	p.legacyJumpWindow--
+	return false
+}
+
 func (p *Player) usesLegacyItemInteraction() bool {
 	return p.Version >= GameVersion1_16_210 && p.Version < GameVersion1_20_0
 }

@@ -318,6 +318,10 @@ func (p *Player) handleMovement(pk *packet.PlayerAuthInput) {
 	velDiff := p.movement.Vel().Sub(p.movement.Client().Vel())
 
 	needsCorrection := posDiff.Len() > p.Opts().Movement.CorrectionThreshold
+	if needsCorrection && !hasTeleport && !hasKnockback && p.acceptClientOffset(posDiff) {
+		posDiff = mgl32.Vec3{}
+		needsCorrection = false
+	}
 	if needsCorrection && p.movement.PendingTeleports() == 0 && !hasTeleport &&
 		!pk.InputData.Load(packet.InputFlagJumpPressedRaw) && !hasKnockback {
 		p.Log().Info(
@@ -405,4 +409,32 @@ func (p *Player) handleMovement(pk *packet.PlayerAuthInput) {
 	// other players will be unable to see if another client is using a cheat to modify their movement (e.g - fly). Of course, that is
 	// granted that the movement scenario is supported by Oomph.
 	pk.Position = finalPos.Add(mgl32.Vec3{0, game.DefaultPlayerHeightOffset + 0.001})
+}
+
+// maxAcceptedClientOffset is the largest offset from the predicted position that is accepted without a correction.
+const maxAcceptedClientOffset = 1.5
+
+// movementMatches returns true if the movement of the client in a frame is within threshold of the prediction.
+func movementMatches(predicted, client mgl32.Vec3, threshold float32) bool {
+	return threshold > 0 && predicted.Sub(client).Len() <= threshold
+}
+
+// acceptClientOffset moves the prediction to the position of the client if the client moved as predicted and is only
+// offset from the prediction. A correction would not do anything but pull an honest player back. Walking through
+// blocks, flying and large speed changes all move the client differently than predicted, so they are still corrected.
+func (p *Player) acceptClientOffset(posDiff mgl32.Vec3) bool {
+	movement := p.movement
+	if posDiff.Len() > maxAcceptedClientOffset || movement.PendingTeleports() != 0 || movement.PendingCorrections() != 0 || movement.Immobile() {
+		return false
+	}
+	client := movement.Client()
+	if !movementMatches(movement.Pos().Sub(movement.LastPos()), client.Pos().Sub(client.LastPos()), p.Opts().Movement.OffsetAcceptanceThreshold) {
+		return false
+	}
+	if utils.HasNearbyBBoxes(movement.BoundingBox(), p.World()) != utils.HasNearbyBBoxes(movement.ClientBoundingBox(), p.World()) {
+		return false
+	}
+	movement.SetPos(client.Pos())
+	p.Dbg.Notify(DebugModeMovementSim, true, "accepted client offset %v (newPos=%v)", posDiff, movement.Pos())
+	return true
 }

@@ -90,6 +90,8 @@ type Player struct {
 	SimulationFrame        uint64
 	ClientTick, InputCount int64
 	legacyInput legacyInput
+	// legacyJumpWindow is the number of inputs in which a jump reported by a client below 1.16.210 may still start.
+	legacyJumpWindow int
 	// ticksSinceKnockback is the amount of inputs since the last knockback was applied to the movement simulation.
 	ticksSinceKnockback int64
 	ServerTick             int64

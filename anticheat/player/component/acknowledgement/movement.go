@@ -207,17 +207,28 @@ func (ack *Knockback) Tick() {
 type MovementCorrection struct {
 	mPlayer  *player.Player
 	setField bool
+	// pos and vel are what a client below 1.20 is teleported to. Such a client does not replay its inputs after a
+	// correction, so the prediction has to continue from here once the client has received the correction.
+	pos, vel mgl32.Vec3
 }
 
 func NewMovementCorrectionACK(p *player.Player) *MovementCorrection {
+	movement := p.Movement()
 	return &MovementCorrection{
 		mPlayer:  p,
 		setField: !p.PendingCorrectionACK,
+		pos:      movement.Pos(),
+		vel:      movement.Vel(),
 	}
 }
 
 func (ack *MovementCorrection) Run() {
-	ack.mPlayer.Movement().RemovePendingCorrection()
+	movement := ack.mPlayer.Movement()
+	movement.RemovePendingCorrection()
+	if ack.setField && ack.mPlayer.Version > 0 && ack.mPlayer.Version < player.GameVersion1_20_0 {
+		movement.SetPos(ack.pos)
+		movement.SetVel(ack.vel)
+	}
 	if ack.setField {
 		ack.mPlayer.PendingCorrectionACK = false
 	}

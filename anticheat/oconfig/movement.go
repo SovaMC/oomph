@@ -25,7 +25,12 @@ type MovementOpts struct {
 	// VelocityAcceptanceThreshold (which is only used if AcceptClientVelocity is TRUE) is the maximum allowed difference
 	// in blocks required for Oomph to accept the client's velocity. Note that this perusasion is not applied on the Y-axis.
 	VelocityAcceptanceThreshold float32 `json:"velocity_acception_threshold" comment:"The difference between the client and Oomph's velocity (in blocks) required for Oomph to accept the client's velocity.\nNOTE: Increasing this above 0.07 may result in movement bypasses."`
-	// LimitAllVelocity is a boolean that represents if the Oomph proxy should limit the prediction velocity to a certain limit. This prevents exploiters from setting a large
+	// OffsetAcceptanceThreshold is the maximum difference in blocks between the movement of the client and the movement
+	// Oomph predicted in a frame for a position beyond the correction threshold to be accepted without a correction. The
+	// client then moves as predicted and only has an offset. It limits how much faster than predicted a client can move
+	// in blocks per frame. A value of zero disables this.
+	OffsetAcceptanceThreshold float32 `json:"offset_acceptance_threshold" comment:"The difference in movement per frame in blocks up to which an offset from the predicted position is accepted without a correction. Zero disables this."`
+	// LimitAllVelocity is a boolean that represents if the Oomph proxy should limit the predph proxy should limit the prediction velocity to a certain limit. This prevents exploiters from setting a large
 	// velocity value when exempted to cause crashes or lag.
 	LimitAllVelocity bool `json:"limit_all_velocity" comment:"Should Oomph limit the prediction velocity to a certain limit? This prevents exploiters from setting a large velocity value when exempted to cause crashes or lag."`
 	// LimitAllVelocityThreshold is the maximum allowed velocity in blocks per tick for all players. This is checked per-axis and not the overall velocity.

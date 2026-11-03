@@ -1047,7 +1047,7 @@ func (mc *AuthoritativeMovementComponent) Sync() {
 				Pitch:           rotation.X(),
 				Yaw:             rotation.Z(),
 				HeadYaw:         rotation.Y(),
-				Mode:            packet.MoveModeReset,
+				Mode:            packet.MoveModeTeleport,
 				OnGround:        mc.OnGround(),
 				Tick:            mc.mPlayer.SimulationFrame,
 			})

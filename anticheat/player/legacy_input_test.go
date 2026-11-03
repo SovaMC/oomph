@@ -1,6 +1,7 @@
 package player
 
 import (
+	"github.com/go-gl/mathgl/mgl32"
 	"testing"
 
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -40,6 +41,32 @@ func TestLegacyInputIsAppliedForOneInput(t *testing.T) {
 	p.applyLegacyInput(next)
 	if next.InputData.Load(packet.InputFlagStartSprinting) {
 		t.Fatal("queued input was applied twice")
+	}
+}
+
+func TestLegacyJumpWaitsForGround(t *testing.T) {
+	p := &Player{Version: 419}
+	if p.LegacyJumpReady(false, true) {
+		t.Fatal("a held jump key must not start a jump")
+	}
+	if !p.LegacyJumpReady(true, true) {
+		t.Fatal("a reported jump on the ground must start")
+	}
+	if p.LegacyJumpReady(false, true) {
+		t.Fatal("a reported jump must start only once")
+	}
+	if p.LegacyJumpReady(true, false) {
+		t.Fatal("a reported jump must not start in the air")
+	}
+	if !p.LegacyJumpReady(false, true) {
+		t.Fatal("a reported jump must start when the simulation lands right after")
+	}
+	p.LegacyJumpReady(true, false)
+	for i := 1; i < legacyJumpFrames; i++ {
+		p.LegacyJumpReady(false, false)
+	}
+	if p.LegacyJumpReady(false, true) {
+		t.Fatal("a reported jump must expire")
 	}
 }
 
@@ -131,5 +158,24 @@ func TestLegacyFlightFlagsReachTheServer(t *testing.T) {
 	}
 	if pk.InputData.Load(packet.InputFlagStartSprinting) {
 		t.Fatal("sprint flag leaked to the server")
+	}
+}
+
+func TestMovementMatches(t *testing.T) {
+	predicted := mgl32.Vec3{0.13, -0.0784, 0.2}
+	if !movementMatches(predicted, predicted.Add(mgl32.Vec3{0.03, 0, 0.03}), 0.05) {
+		t.Fatal("a client moving almost as predicted must match")
+	}
+	if movementMatches(predicted, predicted.Add(mgl32.Vec3{0.3, 0, 0}), 0.05) {
+		t.Fatal("a client moving faster than predicted must not match")
+	}
+	if movementMatches(mgl32.Vec3{}, mgl32.Vec3{0, 0, 0.14}, 0.05) {
+		t.Fatal("a client moving through a block the prediction collides with must not match")
+	}
+	if movementMatches(predicted, predicted.Add(mgl32.Vec3{0, 0.42, 0}), 0.05) {
+		t.Fatal("a client moving up without a predicted jump must not match")
+	}
+	if movementMatches(predicted, predicted, 0) {
+		t.Fatal("a threshold of zero must disable accepting offsets")
 	}
 }

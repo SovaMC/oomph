@@ -76,6 +76,7 @@ var (
 			PositionAcceptanceThreshold: 0.09,
 			AcceptClientVelocity:        false,
 			VelocityAcceptanceThreshold: 0.03,
+			OffsetAcceptanceThreshold:   0.05,
 			LimitAllVelocity:            true,
 			LimitAllVelocityThreshold:   10.0,
 		},
