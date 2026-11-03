@@ -2,6 +2,7 @@ package player
 
 import (
 	"math"
+	"slices"
 
 	"github.com/chewxy/math32"
 	"github.com/df-mc/dragonfly/server/block"
@@ -156,8 +157,9 @@ func (p *Player) PlaceBlock(clickedBlockPos, replaceBlockPos df_cube.Pos, face d
 		return
 	}
 
-	// Make a list of BBoxes the block will occupy.
-	boxes := utils.BlockCollisions(b, cube.Pos(replaceBlockPos), p.World())
+	// Make a list of BBoxes the block will occupy. BlockCollisions may return a shared slice, so it is copied before
+	// the boxes are translated to the position of the block.
+	boxes := slices.Clone(utils.BlockCollisions(b, cube.Pos(replaceBlockPos), p.World()))
 	for index, blockBox := range boxes {
 		boxes[index] = blockBox.Translate(cube.Pos(replaceBlockPos).Vec3())
 	}
